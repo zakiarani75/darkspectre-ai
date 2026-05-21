@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}DARKSPECTRE AI — Dashboard{% endblock %}
+{% block content %}
+<div class="dashboard-section">
+    <div class="container">
+        <h2 class="section-title text-center"><i class="fas fa-chart-pie" style="color:#ff2d95"></i> Live Dashboard</h2>
+        
+        <div class="row g-4 mb-4">
+            <div class="col-md-3 col-6">
+                <div class="stat-card-dash">
+                    <div class="stat-icon" style="color:#ff2d95"><i class="fas fa-search"></i></div>
+                    <div class="stat-value" id="totalScans">0</div>
+                    <div class="stat-label">Total Scans</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stat-card-dash">
+                    <div class="stat-icon" style="color:#ff1744"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="stat-value" id="totalVulns">0</div>
+                    <div class="stat-label">Vulnerabilities</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stat-card-dash">
+                    <div class="stat-icon" style="color:#b388ff"><i class="fas fa-plug"></i></div>
+                    <div class="stat-value" id="totalPorts">0</div>
+                    <div class="stat-label">Open Ports</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stat-card-dash">
+                    <div class="stat-icon" style="color:#00e676"><i class="fas fa-shield-alt"></i></div>
+                    <div class="stat-value" id="securityScore">--</div>
+                    <div class="stat-label">Avg Security Score</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="chart-card">
+                    <h3><i class="fas fa-chart-pie" style="color:#ff2d95"></i> Risk Distribution</h3>
+                    <canvas id="riskChart" height="250"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart-card">
+                    <h3><i class="fas fa-chart-bar" style="color:#b388ff"></i> Vulnerability Timeline</h3>
+                    <canvas id="timelineChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chart-card mt-4">
+            <h3><i class="fas fa-list" style="color:#ff2d95"></i> Recent Scans</h3>
+            <div id="recentScansList">
+                <p style="color:#555;text-align:center">No scans yet. <a href="{{ url_for('scan_page') }}" style="color:#ff2d95">Start your first scan</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let riskChartInstance = null;
+let timelineChartInstance = null;
+
+function loadDashboard() {
+    fetch('/api/live-analytics')
+    .then(r => r.json())
+    .then(data => {
+        // Update stats
+        document.getElementById('totalScans').textContent = data.total_scans || 0;
+        
+        let totalV = 0;
+        for (let k in data.risk_distribution) {
+            totalV += data.risk_distribution[k];
+        }
+        document.getElementById('totalVulns').textContent = totalV;
+        
+        // Risk Chart
+        const ctx = document.getElementById('riskChart').getContext('2d');
+        if (riskChartInstance) riskChartInstance.destroy();
+        
+        riskChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Critical', 'High', 'Medium', 'Low'],
+                datasets: [{
+                    data: [
+                        data.risk_distribution.Critical || 0,
+                        data.risk_distribution.High || 0,
+                        data.risk_distribution.Medium || 0,
+                        data.risk_distribution.Low || 0
+                    ],
+                    backgroundColor: ['#ff1744', '#ff9100', '#ffea00', '#00e676'],
+                    borderColor: ['rgba(255,23,68,0.5)', 'rgba(255,145,0,0.5)', 'rgba(255,234,0,0.5)', 'rgba(0,230,118,0.5)'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        labels: { color: '#e0e0e0', padding: 15 }
+                    }
+                }
+            }
+        });
+        
+        // Timeline Chart
+        if (data.timeline && data.timeline.length > 0) {
+            const ctx2 = document.getElementById('timelineChart').getContext('2d');
+            if (timelineChartInstance) timelineChartInstance.destroy();
+            
+            timelineChartInstance = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: data.timeline.map(t => t.date),
+                    datasets: [{
+                        label: 'Vulnerabilities',
+                        data: data.timeline.map(t => t.vulnerabilities),
+                        backgroundColor: 'rgba(255,45,149,0.5)',
+                        borderColor: '#ff2d95',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { labels: { color: '#e0e0e0' } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    }
+                }
+            });
+        }
+        
+        // Recent scans
+        const list = document.getElementById('recentScansList');
+        if (data.timeline && data.timeline.length > 0) {
+            let html = '<div class="table-responsive"><table class="table table-custom"><tr><th>Date</th><th>Target</th><th>Vulns</th></tr>';
+            data.timeline.slice(-5).reverse().forEach(t => {
+                html += `<tr><td>${t.date}</td><td>${t.target}</td><td>${t.vulnerabilities}</td></tr>`;
+            });
+            html += '</table></div>';
+            list.innerHTML = html;
+        }
+    })
+    .catch(() => {});
+}
+
+loadDashboard();
+setInterval(loadDashboard, 5000);
+</script>
+{% endblock %}

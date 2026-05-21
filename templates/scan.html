@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}DARKSPECTRE AI — Scan{% endblock %}
+{% block content %}
+<div class="scan-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="scan-card">
+                    <h1 class="text-center mb-4"><i class="fas fa-bolt" style="color:#ff2d95"></i> Security Scan</h1>
+                    <p class="text-center" style="color:#888;margin-bottom:30px">Enter a target URL or IP address to initiate automated vulnerability assessment.</p>
+                    
+                    <div class="mb-4">
+                        <label style="color:#b388ff;font-weight:600;margin-bottom:10px">Target URL / IP:</label>
+                        <input type="text" id="targetInput" class="scan-input" placeholder="e.g., scanme.nmap.org or testphp.vulnweb.com">
+                    </div>
+                    
+                    <div class="text-center mb-4">
+                        <button id="startScanBtn" class="btn-scan" onclick="startScan()">
+                            <i class="fas fa-play"></i> Start Scan
+                        </button>
+                    </div>
+                    
+                    <div id="scanConsole" class="scan-console" style="display:none">
+                        <div id="scanLogs"></div>
+                    </div>
+                    
+                    <div id="progressContainer" style="display:none" class="progress-container">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                            <span id="scanMessage" style="color:#b388ff;font-size:0.9em">Initializing...</span>
+                            <span id="scanPercentage" style="color:#ff2d95;font-weight:600">0%</span>
+                        </div>
+                        <div class="progress-bar-custom">
+                            <div id="progressFill" class="progress-fill" style="width:0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="scanResult" style="display:none" class="text-center mt-4">
+                        <div class="loading-spinner"></div>
+                        <p style="color:#b388ff;margin-top:15px">Preparing results...</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <p style="color:#555;font-size:0.85em;text-align:center">
+                            <i class="fas fa-shield-alt" style="color:#ff2d95"></i> 
+                            Only scan targets you own or have explicit permission to test.
+                            <br>Recommended: scanme.nmap.org, testphp.vulnweb.com, demo.testfire.net
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentScanId = null;
+
+function startScan() {
+    const target = document.getElementById('targetInput').value.trim();
+    if (!target) {
+        alert('Please enter a target URL or IP address');
+        return;
+    }
+    
+    const btn = document.getElementById('startScanBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+    
+    // Show console and progress
+    document.getElementById('scanConsole').style.display = 'block';
+    document.getElementById('progressContainer').style.display = 'block';
+    document.getElementById('scanResult').style.display = 'block';
+    document.getElementById('scanLogs').innerHTML = '';
+    
+    addScanLog('🚀', 'Initiating scan on ' + target + '...');
+    
+    fetch('/api/start-scan', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({target: target})
+    })
+    .then(r => r.json())
+    .then(data => {
+        currentScanId = data.scan_id;
+        addScanLog('✅', 'Scan ID: ' + currentScanId);
+        addScanLog('⚡', 'Scan started! Monitoring progress...');
+        pollScanStatus(currentScanId);
+    })
+    .catch(err => {
+        addScanLog('❌', 'Error: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-play"></i> Start Scan';
+    });
+}
+
+function addScanLog(icon, message) {
+    const log = document.getElementById('scanLogs');
+    const div = document.createElement('div');
+    div.className = 'scan-msg';
+    div.innerHTML = `<span style="color:#ff2d95">${icon}</span> ${message}`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+}
+
+function pollScanStatus(scanId) {
+    const interval = setInterval(() => {
+        fetch('/api/scan-status/' + scanId)
+        .then(r => r.json())
+        .then(data => {
+            const progress = data.progress || 0;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('scanPercentage').textContent = progress + '%';
+            
+            if (data.message) {
+                document.getElementById('scanMessage').textContent = data.message;
+                if (progress > 10 && progress < 90) {
+                    // Only log major progress changes
+                }
+            }
+            
+            if (data.status === 'completed') {
+                clearInterval(interval);
+                addScanLog('✅', 'Scan completed successfully!');
+                document.getElementById('startScanBtn').innerHTML = '<i class="fas fa-check"></i> Complete';
+                loadResults(scanId);
+            } else if (data.status === 'error') {
+                clearInterval(interval);
+                addScanLog('❌', 'Scan failed: ' + (data.message || 'Unknown error'));
+                document.getElementById('startScanBtn').disabled = false;
+                document.getElementById('startScanBtn').innerHTML = '<i class="fas fa-play"></i> Start Scan';
+            }
+        })
+        .catch(err => {
+            // Ignore polling errors
+        });
+    }, 1000);
+    
+    // Stop after 10 minutes
+    setTimeout(() => {
+        clearInterval(interval);
+    }, 600000);
+}
+
+function loadResults(scanId) {
+    fetch('/api/scan-results/' + scanId)
+    .then(r => r.json())
+    .then(data => {
+        // Redirect to dashboard with scan ID
+        window.location.href = '/dashboard?scan=' + scanId;
+    })
+    .catch(() => {
+        setTimeout(() => loadResults(scanId), 2000);
+    });
+}
+</script>
+{% endblock %}

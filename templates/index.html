@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}DARKSPECTRE AI — Home{% endblock %}
+{% block content %}
+<div class="hero-section text-center">
+    <div class="container">
+        <div class="hero-content animate__animated animate__fadeInUp">
+            <div class="hero-badge">
+                <span class="glow-dot"></span> AI-Powered Security Platform
+            </div>
+            <h1 class="hero-title">
+                <span class="gradient-text">DARKSPECTRE</span>
+                <span class="neon-text">AI</span>
+            </h1>
+            <p class="hero-subtitle">Next-Generation Automated Cybersecurity Intelligence & Vulnerability Assessment Platform</p>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span class="hero-stat-num" id="toolsCount">15+</span>
+                    <span class="hero-stat-label">Security Tools</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-num" id="scanCount">0</span>
+                    <span class="hero-stat-label">Scans Completed</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-num">AI</span>
+                    <span class="hero-stat-label">Risk Analysis</span>
+                </div>
+            </div>
+            <div class="hero-buttons">
+                <a href="{{ url_for('scan_page') }}" class="btn-glow">
+                    <i class="fas fa-bolt"></i> Start New Scan
+                </a>
+                <a href="{{ url_for('dashboard') }}" class="btn-outline-glow">
+                    <i class="fas fa-chart-pie"></i> View Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="features-section">
+    <div class="container">
+        <h2 class="section-title text-center">Platform Capabilities</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-shield-halig"></i></div>
+                    <h3>Automated Scanning</h3>
+                    <p>One-click execution of 15+ security tools including Nmap, Nikto, Nuclei, SQLMap, and more.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-brain"></i></div>
+                    <h3>AI Risk Analysis</h3>
+                    <p>Machine learning classification of vulnerabilities into Low, Medium, High, and Critical risk levels.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-file-alt"></i></div>
+                    <h3>Professional Reports</h3>
+                    <p>Generate detailed HTML security reports with remediation recommendations.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                    <h3>Live Dashboard</h3>
+                    <p>Real-time analytics with pie charts, risk graphs, and vulnerability statistics.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-history"></i></div>
+                    <h3>Scan History</h3>
+                    <p>Complete history of all scans with ability to revisit and download reports.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-robot"></i></div>
+                    <h3>AI Assistant</h3>
+                    <p>Intelligent security assistant providing remediation guidance for each finding.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="tools-section">
+    <div class="container">
+        <h2 class="section-title text-center">Integrated Security Tools</h2>
+        <div class="tools-grid">
+            <div class="tool-badge">Nmap</div>
+            <div class="tool-badge">Netdiscover</div>
+            <div class="tool-badge">WhatWeb</div>
+            <div class="tool-badge">Whois</div>
+            <div class="tool-badge">DNSRecon</div>
+            <div class="tool-badge">Nikto</div>
+            <div class="tool-badge">Nuclei</div>
+            <div class="tool-badge">SQLMap</div>
+            <div class="tool-badge">WPScan</div>
+            <div class="tool-badge">Dirb</div>
+            <div class="tool-badge">Subfinder</div>
+            <div class="tool-badge">theHarvester</div>
+            <div class="tool-badge">Enum4Linux</div>
+            <div class="tool-badge">Hydra</div>
+            <div class="tool-badge">Metasploit</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

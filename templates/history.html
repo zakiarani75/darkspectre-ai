@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}DARKSPECTRE AI — Scan History{% endblock %}
+{% block content %}
+<div class="dashboard-section">
+    <div class="container">
+        <h2 class="section-title text-center"><i class="fas fa-history" style="color:#ff2d95"></i> Scan History</h2>
+        <p class="text-center" style="color:#888;margin-bottom:40px">Review all previous security assessments</p>
+        
+        <div class="chart-card">
+            <div class="table-responsive">
+                <table class="table table-custom">
+                    <thead>
+                        <tr>
+                            <th>Scan ID</th>
+                            <th>Target</th>
+                            <th>Date</th>
+                            <th>Vulnerabilities</th>
+                            <th>Risk Level</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <tr><td colspan="6" style="text-align:center;color:#555;padding:40px">Loading scan history...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadHistory() {
+    fetch('/api/all-scans')
+    .then(r => r.json())
+    .then(data => {
+        const tbody = document.getElementById('historyTableBody');
+        
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#555;padding:40px">No scans found. <a href="/scan" style="color:#ff2d95">Start your first scan</a></td></tr>';
+            return;
+        }
+        
+        let html = '';
+        data.forEach(s => {
+            const risk = (s.risk_level || 'Low').toLowerCase();
+            html += `
+                <tr>
+                    <td><code style="background:rgba(255,45,149,0.1);padding:3px 10px;border-radius:5px;color:#ff2d95;font-size:0.85em">${s.scan_id}</code></td>
+                    <td><strong style="color:#b388ff">${s.target}</strong></td>
+                    <td style="color:#888;font-size:0.9em">${s.timestamp ? s.timestamp.slice(0,16).replace('T',' ') : 'N/A'}</td>
+                    <td><span style="color:#fff;font-weight:600">${s.vulnerabilities||0}</span></td>
+                    <td><span class="risk-badge risk-${risk}">${s.risk_level||'Low'}</span></td>
+                    <td>
+                        <a href="/api/download-report/${s.scan_id}/html" class="btn-glow" style="display:inline-flex;font-size:0.8em;padding:6px 15px;margin-right:5px">
+                            <i class="fas fa-download"></i>
+                        </a>
+                        <button onclick="deleteScan('${s.scan_id}')" style="background:none;border:1px solid #ff1744;color:#ff1744;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:0.8em">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>`;
+        });
+        tbody.innerHTML = html;
+    })
+    .catch(() => {
+        document.getElementById('historyTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#ff1744;padding:40px">Error loading history.</td></tr>';
+    });
+}
+
+function deleteScan(scanId) {
+    if (!confirm('Delete this scan?')) return;
+    fetch('/api/delete-scan/' + scanId, {method:'DELETE'})
+    .then(r => r.json())
+    .then(() => loadHistory())
+    .catch(() => alert('Error deleting scan'));
+}
+
+loadHistory();
+</script>
+{% endblock %}

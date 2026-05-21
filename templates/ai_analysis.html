@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}DARKSPECTRE AI — AI Analysis{% endblock %}
+{% block content %}
+<div class="dashboard-section">
+    <div class="container">
+        <h2 class="section-title text-center"><i class="fas fa-brain" style="color:#ff2d95"></i> AI Risk Analysis</h2>
+        <p class="text-center" style="color:#888;margin-bottom:40px">Intelligent vulnerability analysis and remediation recommendations</p>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="analysis-card text-center">
+                    <div style="font-size:3em;margin-bottom:10px;color:#ff2d95"><i class="fas fa-radiation"></i></div>
+                    <h3 style="color:#fff">Select a Scan</h3>
+                    <p style="color:#888;font-size:0.9em">Choose from completed scans for AI-powered analysis</p>
+                    <select id="scanSelector" class="scan-input" onchange="loadAnalysis(this.value)">
+                        <option value="">-- Select Scan --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="analysis-card" id="analysisResults">
+                    <div style="text-align:center;padding:40px">
+                        <div style="font-size:4em;color:rgba(255,45,149,0.3);margin-bottom:20px"><i class="fas fa-robot"></i></div>
+                        <h4 style="color:#555">No Scan Selected</h4>
+                        <p style="color:#444">Select a completed scan to view AI analysis and recommendations</p>
+                        <a href="{{ url_for('scan_page') }}" class="btn-glow" style="display:inline-flex;font-size:0.9em;padding:12px 30px">
+                            <i class="fas fa-bolt"></i> Start New Scan
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadScans() {
+    fetch('/api/all-scans')
+    .then(r => r.json())
+    .then(data => {
+        const sel = document.getElementById('scanSelector');
+        sel.innerHTML = '<option value="">-- Select Scan --</option>';
+        data.forEach(s => {
+            sel.innerHTML += `<option value="${s.scan_id}">${s.target} - ${s.risk_level} (${s.vulnerabilities} vulns)</option>`;
+        });
+    })
+    .catch(() => {});
+}
+
+function loadAnalysis(scanId) {
+    if (!scanId) {
+        document.getElementById('analysisResults').innerHTML = `
+            <div style="text-align:center;padding:40px">
+                <div style="font-size:4em;color:rgba(255,45,149,0.3);margin-bottom:20px"><i class="fas fa-robot"></i></div>
+                <h4 style="color:#555">No Scan Selected</h4>
+                <p style="color:#444">Select a completed scan to view AI analysis</p>
+            </div>`;
+        return;
+    }
+    
+    document.getElementById('analysisResults').innerHTML = `
+        <div style="text-align:center;padding:20px">
+            <div class="loading-spinner"></div>
+            <p style="color:#b388ff">Loading AI analysis...</p>
+        </div>`;
+    
+    fetch('/api/scan-results/' + scanId)
+    .then(r => r.json())
+    .then(data => {
+        const ai = data.ai_analysis || {};
+        const recs = ai.recommendations || data.recommendations || [];
+        const dist = ai.vulnerability_distribution || {};
+        
+        let html = `
+            <h3 style="color:#fff;margin-bottom:20px">
+                <i class="fas fa-shield-alt" style="color:#ff2d95"></i> 
+                AI Analysis: ${data.target}
+                <span class="risk-badge risk-${(ai.risk_level||'low').toLowerCase()}" style="margin-left:15px">
+                    ${ai.risk_level || 'N/A'}
+                </span>
+            </h3>
+            
+            <div class="row g-3 mb-4">
+                <div class="col-md-3 col-6">
+                    <div class="stat-card-dash" style="padding:15px">
+                        <div class="stat-value" style="font-size:1.8em">${ai.total_vulnerabilities||0}</div>
+                        <div class="stat-label">Total Issues</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="stat-card-dash" style="padding:15px">
+                        <div class="stat-value" style="font-size:1.8em;color:#ff1744">${dist.Critical||0}</div>
+                        <div class="stat-label">Critical</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="stat-card-dash" style="padding:15px">
+                        <div class="stat-value" style="font-size:1.8em;color:#ff9100">${dist.High||0}</div>
+                        <div class="stat-label">High</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="stat-card-dash" style="padding:15px">
+                        <div class="stat-value" style="font-size:1.8em">${ai.security_score||'--'}</div>
+                        <div class="stat-label">Security Score</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background:rgba(179,136,255,0.05);border-radius:15px;padding:20px;margin-bottom:20px;border:1px solid rgba(179,136,255,0.1)">
+                <p style="color:#b388ff;line-height:1.8">${ai.summary || 'AI analysis summary not available.'}</p>
+            </div>
+            
+            <h4 style="color:#fff;margin:30px 0 20px"><i class="fas fa-tools" style="color:#ff2d95"></i> Remediation Recommendations</h4>`;
+        
+        if (recs.length === 0) {
+            html += '<p style="color:#555">No recommendations available.</p>';
+        } else {
+            recs.forEach(r => {
+                const sev = (r.severity||'medium').toLowerCase();
+                html += `
+                    <div class="recommendation-item ${sev}">
+                        <div style="display:flex;justify-content:space-between;align-items:start">
+                            <div>
+                                <strong style="color:#fff">${r.vulnerability || 'Finding'}</strong>
+                                <span class="risk-badge risk-${sev}" style="margin-left:10px">${r.severity||'Medium'}</span>
+                            </div>
+                            <span style="color:#888;font-size:0.85em">${r.priority||'Review'}</span>
+                        </div>
+                        <p style="color:#aaa;margin-top:10px;font-size:0.95em">
+                            <i class="fas fa-wrench" style="color:#00e676;margin-right:8px"></i>
+                            ${r.recommendation || 'Review and apply security best practices.'}
+                        </p>
+                    </div>`;
+            });
+        }
+        
+        document.getElementById('analysisResults').innerHTML = html;
+    })
+    .catch(() => {
+        document.getElementById('analysisResults').innerHTML = '<p style="color:#ff1744">Error loading analysis. Please try again.</p>';
+    });
+}
+
+loadScans();
+</script>
+{% endblock %}
